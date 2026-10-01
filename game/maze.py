@@ -1,4 +1,5 @@
 import random
+from collections import deque
 
 CELL = 40  # cell size in pixels
 
@@ -31,6 +32,40 @@ def generate_maze(cols, rows):
         else:
             stack.pop()
     return walls
+
+def solve_maze(walls, start, goal):
+    """BFS shortest path. start and goal are (row, col) tuples.
+    Returns a list of (row, col) cells from start to goal, or [] if no path."""
+    rows, cols = len(walls), len(walls[0])
+    # (dr, dc, wall_index) -> wall_index matches the [N, S, E, W] layout
+    moves = [(-1, 0, 0), (1, 0, 1), (0, 1, 2), (0, -1, 3)]
+
+    queue = deque([start])
+    came_from = {start: None}  # cell -> the cell we reached it from
+
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) == goal:
+            break
+        for dr, dc, wall_idx in moves:
+            nr, nc = r + dr, c + dc
+            in_bounds = 0 <= nr < rows and 0 <= nc < cols
+            # Only step if there is no wall on that side and the cell is new
+            if in_bounds and not walls[r][c][wall_idx] and (nr, nc) not in came_from:
+                came_from[(nr, nc)] = (r, c)
+                queue.append((nr, nc))
+
+    if goal not in came_from:
+        return []
+
+    # Walk backwards from the goal to the start, then reverse
+    path = []
+    cell = goal
+    while cell is not None:
+        path.append(cell)
+        cell = came_from[cell]
+    path.reverse()
+    return path
 
 def cell_rect(r, c, import_pygame=None):
     import pygame
